@@ -208,7 +208,7 @@ async function handlePasskeyLogin() {
       <div class="login-container">
         <div class="login-form">
           <div class="project-title">
-            <h1>Nginx UI</h1>
+            <h1>TrashPandaTV.space</h1>
           </div>
           <AForm id="components-form-demo-normal-login">
             <template v-if="!enabled2FA">
