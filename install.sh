@@ -687,6 +687,7 @@ main() {
     [[ "$REMOVE" -eq '1' ]] && remove_nginx_ui
 
     TMP_DIRECTORY="$(mktemp -d)"
+    cd "$TMP_DIRECTORY"
 
     install_software 'curl' 'curl'
     install_software 'git' 'git'
@@ -695,19 +696,22 @@ main() {
     get_latest_version
     echo "info: Installing Nginx UI $RELEASE_LATEST ($VERSION_CHANNEL channel) for $(uname -m)"
 
-    echo "Cloning and building Nginx UI from source..."
-    cd "$TMP_DIRECTORY"
+    # Clone and build
+    echo "info: Cloning repo from GitHub..."
     git clone --depth 1 --branch "$RELEASE_LATEST" https://github.com/JamesHowarth02/nginx-ui.git source
     cd source
 
+    echo "info: Building nginx-ui Go binary..."
     go build -o nginx-ui
-    install -m 755 nginx-ui /usr/local/bin/nginx-ui
-    echo 'installed: /usr/local/bin/nginx-ui'
 
-    install_service
+    echo "info: Installing nginx-ui binary..."
+    sudo install -Dm755 nginx-ui /usr/local/bin/nginx-ui
+
     install_config
+    install_service
 
     rm -rf "$TMP_DIRECTORY"
 
     start_nginx_ui
 }
+main "$@"
