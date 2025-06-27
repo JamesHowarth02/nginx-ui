@@ -247,13 +247,13 @@ get_latest_version() {
     # Get latest release version number
     local latest_release
     if [[ "$VERSION_CHANNEL" == "stable" ]]; then
-        if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/0xJacky/nginx-ui/releases/latest"); then
+        if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/JamesHowarth02/nginx-ui/releases/latest"); then
             echo -e "${FontRed}error: Failed to get release list, please check your network.${FontSuffix}"
             exit 1
         fi
         RELEASE_LATEST="$(echo "$latest_release" | sed 'y/,/\n/' | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')"
     elif [[ "$VERSION_CHANNEL" == "prerelease" ]]; then
-        if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/0xJacky/nginx-ui/releases"); then
+        if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/JamesHowarth02/nginx-ui/releases"); then
             echo -e "${FontRed}error: Failed to get release list, please check your network.${FontSuffix}"
             exit 1
         fi
@@ -262,7 +262,7 @@ get_latest_version() {
         if [[ -z "$RELEASE_LATEST" ]]; then
             echo -e "${FontYellow}warning: No prerelease version found, falling back to stable version.${FontSuffix}"
             # Fallback to stable release
-            if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/0xJacky/nginx-ui/releases/latest"); then
+            if ! latest_release=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/JamesHowarth02/nginx-ui/releases/latest"); then
                 echo -e "${FontRed}error: Failed to get release list, please check your network.${FontSuffix}"
                 exit 1
             fi
@@ -271,7 +271,7 @@ get_latest_version() {
     elif [[ "$VERSION_CHANNEL" == "dev" ]]; then
         # Get latest dev commit info
         local dev_commit
-        if ! dev_commit=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "${RPROXY}https://api.github.com/repos/0xJacky/nginx-ui/commits/dev?per_page=1"); then
+        if ! dev_commit=$(curl_with_retry -sS -H "Accept: application/vnd.github.v3+json" "${RPROXY}https://api.github.com/repos/JamesHowarth02/nginx-ui/commits/dev?per_page=1"); then
             echo -e "${FontRed}error: Failed to get dev commit info, please check your network.${FontSuffix}"
             exit 1
         fi
@@ -288,7 +288,7 @@ get_latest_version() {
             echo -e "${FontRed}error: github API rate limit exceeded${FontSuffix}"
         else
             echo -e "${FontRed}error: Failed to get the latest release version.${FontSuffix}"
-            echo "Welcome bug report: https://github.com/0xJacky/nginx-ui/issues"
+            echo "Welcome bug report: https://github.com/JamesHowarth02/nginx-ui/issues"
         fi
         exit 1
     fi
@@ -302,7 +302,7 @@ download_nginx_ui() {
         download_link="${RPROXY}https://cloud.nginxui.com/dev-builds/nginx-ui-linux-$MACHINE.tar.gz"
     else
         # For stable and prerelease versions
-        download_link="${RPROXY}https://github.com/0xJacky/nginx-ui/releases/download/$RELEASE_LATEST/nginx-ui-linux-$MACHINE.tar.gz"
+        download_link="${RPROXY}https://github.com/JamesHowarth02/nginx-ui/releases/download/$RELEASE_LATEST/nginx-ui-linux-$MACHINE.tar.gz"
     fi
 
     echo "Downloading Nginx UI archive: $download_link"
@@ -347,7 +347,7 @@ install_service() {
 
 install_systemd_service() {
     mkdir -p '/etc/systemd/system/nginx-ui.service.d'
-    local service_download_link="${RPROXY}https://raw.githubusercontent.com/0xJacky/nginx-ui/main/resources/services/nginx-ui.service"
+    local service_download_link="${RPROXY}https://raw.githubusercontent.com/JamesHowarth02/nginx-ui/main/resources/services/nginx-ui.service"
 
     echo "Downloading Nginx UI service file: $service_download_link"
     if ! curl_with_retry -R -H 'Cache-Control: no-cache' -L -o "$ServicePath" "$service_download_link"; then
@@ -365,7 +365,7 @@ install_systemd_service() {
 }
 
 install_openrc_service() {
-    local openrc_download_link="${RPROXY}https://raw.githubusercontent.com/0xJacky/nginx-ui/main/resources/services/nginx-ui.rc"
+    local openrc_download_link="${RPROXY}https://raw.githubusercontent.com/JamesHowarth02/nginx-ui/main/resources/services/nginx-ui.rc"
 
     echo "Downloading Nginx UI OpenRC file: $openrc_download_link"
     if ! curl_with_retry -R -H 'Cache-Control: no-cache' -L -o "$OpenRCPath" "$openrc_download_link"; then
@@ -386,7 +386,7 @@ install_openrc_service() {
 
 install_initd_service() {
     # Download init.d script
-    local initd_download_link="${RPROXY}https://raw.githubusercontent.com/0xJacky/nginx-ui/main/resources/services/nginx-ui.init"
+    local initd_download_link="${RPROXY}https://raw.githubusercontent.com/JamesHowarth02/nginx-ui/main/resources/services/nginx-ui.init"
 
     echo "Downloading Nginx UI init.d file: $initd_download_link"
     if ! curl_with_retry -R -H 'Cache-Control: no-cache' -L -o "$InitPath" "$initd_download_link"; then
@@ -683,102 +683,31 @@ main() {
     identify_the_operating_system_and_architecture
     judgment_parameters "$@"
 
-    # Parameter information
     [[ "$HELP" -eq '1' ]] && show_help
     [[ "$REMOVE" -eq '1' ]] && remove_nginx_ui
 
-    # Important Variables
     TMP_DIRECTORY="$(mktemp -d)"
-    TAR_FILE="${TMP_DIRECTORY}/nginx-ui-linux-$MACHINE.tar.gz"
 
-    # Auto install OpenRC on Alpine Linux if needed
-    if [[ "$(type -P apk)" ]]; then
-        install_software 'openrc' 'openrc'
-    fi
     install_software 'curl' 'curl'
+    install_software 'git' 'git'
+    install_software 'go' 'go'
 
-    # Install from a local file
-    if [[ -n "$LOCAL_FILE" ]]; then
-        echo "info: Install Nginx UI from a local file '$LOCAL_FILE'."
-        decompression "$LOCAL_FILE"
-    else
-        get_latest_version
-        echo "info: Installing Nginx UI $RELEASE_LATEST ($VERSION_CHANNEL channel) for $(uname -m)"
-        if ! download_nginx_ui; then
-            "rm" -r "$TMP_DIRECTORY"
-            echo "removed: $TMP_DIRECTORY"
-            exit 1
-        fi
-        decompression "$TAR_FILE"
-    fi
+    get_latest_version
+    echo "info: Installing Nginx UI $RELEASE_LATEST ($VERSION_CHANNEL channel) for $(uname -m)"
 
-    install_bin
+    echo "Cloning and building Nginx UI from source..."
+    cd "$TMP_DIRECTORY"
+    git clone --depth 1 --branch "$RELEASE_LATEST" https://github.com/JamesHowarth02/nginx-ui.git source
+    cd source
+
+    go build -o nginx-ui
+    install -m 755 nginx-ui /usr/local/bin/nginx-ui
     echo 'installed: /usr/local/bin/nginx-ui'
 
     install_service
-    if [[ "$SERVICE_TYPE" == "systemd" && "$SYSTEMD" -eq '1' ]]; then
-        echo "installed: ${ServicePath}"
-    elif [[ "$SERVICE_TYPE" == "openrc" && "$OPENRC" -eq '1' ]]; then
-        echo "installed: ${OpenRCPath}"
-    elif [[ "$SERVICE_TYPE" == "initd" && "$INITD" -eq '1' ]]; then
-        echo "installed: ${InitPath}"
-    fi
-
-    "rm" -r "$TMP_DIRECTORY"
-    echo "removed: $TMP_DIRECTORY"
-    echo "info: Nginx UI $RELEASE_LATEST is installed."
-
     install_config
 
-    # Check nginx-ui service status and decide whether to start or restart
-    check_nginx_ui_status
-    service_status=$?
-    
-    if [[ $service_status -eq 0 ]]; then
-        # Service is running, restart it
-        echo "info: Nginx UI service is running, restarting..."
-        restart_nginx_ui
-    elif [[ $service_status -eq 1 ]]; then
-        # Service is installed but not running, start it
-        echo "info: Nginx UI service is not running, starting..."
-        start_nginx_ui
-        # Enable service for auto-start
-        if [[ "$SERVICE_TYPE" == "systemd" ]]; then
-            systemctl enable nginx-ui
-        elif [[ "$SERVICE_TYPE" == "openrc" ]]; then
-            rc-update add nginx-ui default
-        fi
-    else
-        # Service is not installed, start it and enable
-        echo "info: Installing and starting Nginx UI service..."
-        if [[ "$SERVICE_TYPE" == "systemd" ]]; then
-            systemctl start nginx-ui
-            systemctl enable nginx-ui
-            sleep 1s
-            if systemctl -q is-active nginx-ui; then
-                echo "info: Start and enable the Nginx UI service."
-            else
-                echo -e "${FontYellow}warning: Failed to enable and start the Nginx UI service.${FontSuffix}"
-            fi
-        elif [[ "$SERVICE_TYPE" == "openrc" ]]; then
-            rc-service nginx-ui start
-            rc-update add nginx-ui default
-            sleep 1s
-            if rc-service nginx-ui status | grep -qE "(started|running)"; then
-                echo "info: Started and added the Nginx UI service to default runlevel."
-            else
-                echo -e "${FontYellow}warning: Failed to start the Nginx UI service.${FontSuffix}"
-            fi
-        elif [[ "$SERVICE_TYPE" == "initd" ]]; then
-            $InitPath start
-            sleep 1s
-            if $InitPath status >/dev/null 2>&1; then
-                echo "info: Started the Nginx UI service."
-            else
-                echo -e "${FontYellow}warning: Failed to start the Nginx UI service.${FontSuffix}"
-            fi
-        fi
-    fi
-}
+    rm -rf "$TMP_DIRECTORY"
 
-main "$@"
+    start_nginx_ui
+}
